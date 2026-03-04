@@ -1,31 +1,103 @@
-<script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxqJtptaXAZ_AloXrAOx4UX59OWAdEjzzN7FsWpMIn-0jLKZ4Q64f-idCefTttB-U2g/exec";
-    let DATABASE = {}; // La nostra cache locale
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Sheets App</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; margin: 0; height: 100vh; background-color: #f4f7f6; }
+        
+        /* Sidebar */
+        #sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
+        #sidebar h3 { border-bottom: 1px solid #34495e; padding-bottom: 10px; }
+        #sidebar button { display: block; width: 100%; padding: 12px; margin-bottom: 8px; cursor: pointer; background: #34495e; color: white; border: none; text-align: left; border-radius: 4px; transition: 0.3s; }
+        #sidebar button:hover { background: #1abc9c; }
+        #sidebar button.active { background: #1abc9c; font-weight: bold; }
 
-    // Carica tutto all'apertura della pagina
+        /* Contenuto Principale */
+        #main-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        #header { background: white; padding: 15px 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        #content { padding: 25px; overflow-y: auto; flex-grow: 1; }
+
+        /* Tabella */
+        table { border-collapse: collapse; width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #eee; padding: 12px 15px; text-align: left; }
+        th { background-color: #1abc9c; color: white; text-transform: uppercase; font-size: 13px; }
+        tr:hover { background-color: #f9f9f9; }
+        
+        /* Loading spinner semplice */
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; display: inline-block; margin-right: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h3>📂 My Database</h3>
+    <div id="menu-loading">Caricamento menu...</div>
+    <div id="buttons-container"></div>
+</div>
+
+<div id="main-container">
+    <div id="header">
+        <h2 id="titolo-foglio" style="margin:0;">Benvenuto</h2>
+    </div>
+    <div id="content">
+        <div id="status-message">Inizializzazione in corso...</div>
+        <div id="tabella-container"></div>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURAZIONE ---
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxqJtptaXAZ_AloXrAOx4UX59OWAdEjzzN7FsWpMIn-0jLKZ4Q64f-idCefTttB-U2g/exec";
+    // ----------------------
+
+    let DATABASE = {}; 
+
     window.onload = function() {
-        document.getElementById('content').innerHTML = "<h2>Inizializzazione database...</h2>";
+        const statusMsg = document.getElementById('status-message');
         
         fetch(WEB_APP_URL)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error("Errore di rete o permessi mancanti");
+                return response.json();
+            })
             .then(data => {
-                DATABASE = data; // Salviamo tutto qui
-                document.getElementById('content').innerHTML = "<h2>Database Pronto. Seleziona un foglio.</h2>";
-                console.log("Dati caricati:", DATABASE);
+                DATABASE = data;
+                statusMsg.innerHTML = "Seleziona un foglio dal menu a sinistra per visualizzare i dati.";
+                document.getElementById('menu-loading').style.display = 'none';
+                
+                renderMenu();
             })
             .catch(error => {
-                document.getElementById('content').innerHTML = "<h2>Errore nel caricamento.</h2>";
+                console.error("Errore:", error);
+                statusMsg.innerHTML = `<b style="color:red;">Errore:</b> ${error.message}. <br><br>Assicurati di aver pubblicato la Web App come "Chiunque".`;
             });
     };
 
+    function renderMenu() {
+        const container = document.getElementById('buttons-container');
+        Object.keys(DATABASE).forEach(nomeFoglio => {
+            const btn = document.createElement('button');
+            btn.innerText = nomeFoglio;
+            btn.onclick = function() {
+                // Rimuovi classe active da altri bottoni
+                document.querySelectorAll('#sidebar button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                caricaDati(nomeFoglio);
+            };
+            container.appendChild(btn);
+        });
+    }
+
     function caricaDati(nomeFoglio) {
-        // Ora leggiamo da DATABASE, non facciamo più una fetch!
         const dati = DATABASE[nomeFoglio];
-        
         document.getElementById('titolo-foglio').innerText = nomeFoglio;
+        document.getElementById('status-message').style.display = 'none';
         
         if (!dati || dati.length === 0) {
-            document.getElementById('tabella-container').innerHTML = "Nessun dato trovato.";
+            document.getElementById('tabella-container').innerHTML = "Nessun dato presente in questo foglio.";
             return;
         }
         
@@ -34,15 +106,24 @@
 
     function generaTabella(data) {
         let html = '<table><thead><tr>';
-        Object.keys(data[0]).forEach(key => html += `<th>${key}</th>`);
+        // Creazione intestazioni
+        Object.keys(data[0]).forEach(key => {
+            html += `<th>${key}</th>`;
+        });
         html += '</tr></thead><tbody>';
         
+        // Creazione righe
         data.forEach(row => {
             html += '<tr>';
-            Object.values(row).forEach(val => html += `<td>${val}</td>`);
+            Object.values(row).forEach(val => {
+                html += `<td>${val}</td>`;
+            });
             html += '</tr>';
         });
         html += '</tbody></table>';
         document.getElementById('tabella-container').innerHTML = html;
     }
 </script>
+
+</body>
+</html>
