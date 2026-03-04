@@ -1,0 +1,48 @@
+<script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxqJtptaXAZ_AloXrAOx4UX59OWAdEjzzN7FsWpMIn-0jLKZ4Q64f-idCefTttB-U2g/exec";
+    let DATABASE = {}; // La nostra cache locale
+
+    // Carica tutto all'apertura della pagina
+    window.onload = function() {
+        document.getElementById('content').innerHTML = "<h2>Inizializzazione database...</h2>";
+        
+        fetch(WEB_APP_URL)
+            .then(response => response.json())
+            .then(data => {
+                DATABASE = data; // Salviamo tutto qui
+                document.getElementById('content').innerHTML = "<h2>Database Pronto. Seleziona un foglio.</h2>";
+                console.log("Dati caricati:", DATABASE);
+            })
+            .catch(error => {
+                document.getElementById('content').innerHTML = "<h2>Errore nel caricamento.</h2>";
+            });
+    };
+
+    function caricaDati(nomeFoglio) {
+        // Ora leggiamo da DATABASE, non facciamo più una fetch!
+        const dati = DATABASE[nomeFoglio];
+        
+        document.getElementById('titolo-foglio').innerText = nomeFoglio;
+        
+        if (!dati || dati.length === 0) {
+            document.getElementById('tabella-container').innerHTML = "Nessun dato trovato.";
+            return;
+        }
+        
+        generaTabella(dati);
+    }
+
+    function generaTabella(data) {
+        let html = '<table><thead><tr>';
+        Object.keys(data[0]).forEach(key => html += `<th>${key}</th>`);
+        html += '</tr></thead><tbody>';
+        
+        data.forEach(row => {
+            html += '<tr>';
+            Object.values(row).forEach(val => html += `<td>${val}</td>`);
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        document.getElementById('tabella-container').innerHTML = html;
+    }
+</script>
