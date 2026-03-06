@@ -1,0 +1,16 @@
+{
+  "name": "My Sheets App Pro",
+  "short_name": "SheetsApp",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#1abc9c",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/732/732220.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
