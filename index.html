@@ -2,128 +2,336 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Sheets App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Sheets App Pro</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; margin: 0; height: 100vh; background-color: #f4f7f6; }
+        /* BASE & LAYOUT */
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #f4f7f6; height: 100vh; overflow: hidden; }
         
-        /* Sidebar */
-        #sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
-        #sidebar h3 { border-bottom: 1px solid #34495e; padding-bottom: 10px; }
-        #sidebar button { display: block; width: 100%; padding: 12px; margin-bottom: 8px; cursor: pointer; background: #34495e; color: white; border: none; text-align: left; border-radius: 4px; transition: 0.3s; }
-        #sidebar button:hover { background: #1abc9c; }
-        #sidebar button.active { background: #1abc9c; font-weight: bold; }
+        /* LOGIN */
+        #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #2c3e50; color: white; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; color: #333; width: 90%; max-width: 350px; }
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .login-box button { width: 100%; padding: 12px; background: #1abc9c; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
-        /* Contenuto Principale */
-        #main-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-        #header { background: white; padding: 15px 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        #content { padding: 25px; overflow-y: auto; flex-grow: 1; }
+        /* APP E SIDEBAR FISSA */
+        #app-screen { display: none; height: 100vh; flex-direction: row; }
+        #sidebar { width: 250px; min-width: 250px; background: #2c3e50; color: white; padding: 20px; overflow-y: auto; flex-shrink: 0; box-sizing: border-box; }
+        #sidebar button { display: block; width: 100%; padding: 12px; margin-bottom: 8px; cursor: pointer; background: #34495e; color: white; border: none; text-align: left; border-radius: 6px; transition: 0.2s; }
+        #sidebar button:hover, #sidebar button.active { background: #1abc9c; }
+        
+        #main-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%; }
+        #header { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        #content { padding: 20px; overflow-y: auto; flex-grow: 1; }
 
-        /* Tabella */
-        table { border-collapse: collapse; width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        th, td { border: 1px solid #eee; padding: 12px 15px; text-align: left; }
-        th { background-color: #1abc9c; color: white; text-transform: uppercase; font-size: 13px; }
+        /* TABELLE */
+        .table-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { border-collapse: collapse; width: 100%; min-width: 600px; }
+        th, td { border: 1px solid #eee; padding: 10px 15px; text-align: left; }
+        th { background-color: #1abc9c; color: white; }
         tr:hover { background-color: #f9f9f9; }
-        
-        /* Loading spinner semplice */
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; display: inline-block; margin-right: 10px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* BOTTONI */
+        .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-sync { background: #f39c12; }
+        .btn-settings { background: #7f8c8d; margin-left: 5px; }
+        .btn-add { background: #27ae60; display: none; margin-top: 10px; width: max-content; }
+        .btn-edit { background: #3498db; padding: 5px 10px; font-size: 12px; }
+
+        /* MODALI (FORM E IMPOSTAZIONI) */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-save { background: #27ae60; }
+        .btn-cancel { background: #e74c3c; }
+
+        /* SMARTPHONE */
+        @media (max-width: 768px) {
+            #app-screen { flex-direction: column; }
+            #sidebar { width: 100%; min-width: 100%; padding: 10px; display: flex; gap: 5px; overflow-x: auto; white-space: nowrap; height: auto; border-bottom: 2px solid #1abc9c; }
+            #sidebar h3 { display: none; }
+            #sidebar button { display: inline-block; width: auto; margin-bottom: 0; flex: 0 0 auto; }
+            #header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .header-actions { display: flex; width: 100%; justify-content: space-between; }
+        }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
-    <h3>📂 My Database</h3>
-    <div id="menu-loading">Caricamento menu...</div>
-    <div id="buttons-container"></div>
-</div>
-
-<div id="main-container">
-    <div id="header">
-        <h2 id="titolo-foglio" style="margin:0;">Benvenuto</h2>
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>Accesso</h2>
+            <input type="password" id="pass-input" placeholder="Password">
+            <button onclick="faiLogin()" id="btn-login">Entra</button>
+        </div>
     </div>
-    <div id="content">
-        <div id="status-message">Inizializzazione in corso...</div>
-        <div id="tabella-container"></div>
+
+    <div id="app-screen">
+        <div id="sidebar">
+            <h3>Menu Fogli</h3>
+            <div id="buttons-container"></div>
+        </div>
+
+        <div id="main-container">
+            <div id="header">
+                <div style="display:flex; flex-direction:column;">
+                    <h2 id="titolo-foglio" style="margin:0;">Benvenuto</h2>
+                    <button id="btn-add-record" class="btn btn-add" onclick="apriForm(null)">+ Nuova Riga</button>
+                </div>
+                <div class="header-actions">
+                    <button onclick="sincronizza()" id="btn-sync" class="btn btn-sync">🔄 Sync</button>
+                    <button onclick="apriImpostazioni()" class="btn btn-settings">⚙️ Impostazioni</button>
+                </div>
+            </div>
+            <div id="content">
+                <div id="status-message">Seleziona un foglio per iniziare.</div>
+                <div class="table-wrapper" id="tabella-container"></div>
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-    // --- CONFIGURAZIONE ---
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxqJtptaXAZ_AloXrAOx4UX59OWAdEjzzN7FsWpMIn-0jLKZ4Q64f-idCefTttB-U2g/exec";
-    // ----------------------
+    <div id="modal-form" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-title">Nuovo Record</h3>
+            <div id="modal-form-fields"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="chiudiModal('modal-form')">Annulla</button>
+                <button class="btn btn-save" onclick="salvaDati()" id="btn-save-modal">Salva Dati</button>
+            </div>
+        </div>
+    </div>
 
-    let DATABASE = {}; 
+    <div id="modal-settings" class="modal-overlay">
+        <div class="modal-content">
+            <h3>⚙️ Impostazioni Foglio</h3>
+            <p>Configura i permessi per il foglio: <b id="settings-nome-foglio"></b></p>
+            
+            <div class="form-group">
+                <label><input type="checkbox" id="set-add"> Permetti l'aggiunta di nuove righe</label>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="set-edit"> Permetti la modifica delle righe esistenti</label>
+            </div>
+            
+            <hr style="border:0; border-top:1px solid #ccc; margin: 15px 0;">
+            <div id="settings-colonne" class="form-group">
+                </div>
 
-    window.onload = function() {
-        const statusMsg = document.getElementById('status-message');
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="chiudiModal('modal-settings')">Annulla</button>
+                <button class="btn btn-save" onclick="salvaImpostazioni()" id="btn-save-settings">Salva Impostazioni</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "INCOLLA_QUI_IL_TUO_URL_DI_APPS_SCRIPT";
         
-        fetch(WEB_APP_URL)
-            .then(response => {
-                if (!response.ok) throw new Error("Errore di rete o permessi mancanti");
-                return response.json();
-            })
-            .then(data => {
-                DATABASE = data;
-                statusMsg.innerHTML = "Seleziona un foglio dal menu a sinistra per visualizzare i dati.";
-                document.getElementById('menu-loading').style.display = 'none';
-                
-                renderMenu();
-            })
-            .catch(error => {
-                console.error("Errore:", error);
-                statusMsg.innerHTML = `<b style="color:red;">Errore:</b> ${error.message}. <br><br>Assicurati di aver pubblicato la Web App come "Chiunque".`;
-            });
-    };
+        let DATABASE = {};
+        let APP_CONFIG = {}; // Ora viene popolato dal server
+        let FOGLIO_ATTIVO = "";
+        let RIGA_IN_MODIFICA = null;
 
-    function renderMenu() {
-        const container = document.getElementById('buttons-container');
-        Object.keys(DATABASE).forEach(nomeFoglio => {
-            const btn = document.createElement('button');
-            btn.innerText = nomeFoglio;
-            btn.onclick = function() {
-                // Rimuovi classe active da altri bottoni
-                document.querySelectorAll('#sidebar button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                caricaDati(nomeFoglio);
-            };
-            container.appendChild(btn);
-        });
-    }
+        // --- GESTIONE ACCESSO ---
+        window.onload = function() {
+            const sessione = JSON.parse(localStorage.getItem('appSession'));
+            if (sessione && (new Date().getTime() - sessione.timestamp) / 3600000 < 24) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-screen').style.display = 'flex';
+                sincronizza();
+            }
+        };
 
-    function caricaDati(nomeFoglio) {
-        const dati = DATABASE[nomeFoglio];
-        document.getElementById('titolo-foglio').innerText = nomeFoglio;
-        document.getElementById('status-message').style.display = 'none';
-        
-        if (!dati || dati.length === 0) {
-            document.getElementById('tabella-container').innerHTML = "Nessun dato presente in questo foglio.";
-            return;
+        function chiamaGoogle(dati) {
+            return fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(dati) }).then(res => res.json());
         }
-        
-        generaTabella(dati);
-    }
 
-    function generaTabella(data) {
-        let html = '<table><thead><tr>';
-        // Creazione intestazioni
-        Object.keys(data[0]).forEach(key => {
-            html += `<th>${key}</th>`;
-        });
-        html += '</tr></thead><tbody>';
-        
-        // Creazione righe
-        data.forEach(row => {
-            html += '<tr>';
-            Object.values(row).forEach(val => {
-                html += `<td>${val}</td>`;
+        function faiLogin() {
+            const pass = document.getElementById('pass-input').value;
+            chiamaGoogle({ action: "login", pass: pass }).then(data => {
+                if (data.success) {
+                    localStorage.setItem('appSession', JSON.stringify({ token: data.token, timestamp: new Date().getTime() }));
+                    window.location.reload();
+                } else alert("Password errata");
             });
-            html += '</tr>';
-        });
-        html += '</tbody></table>';
-        document.getElementById('tabella-container').innerHTML = html;
-    }
-</script>
+        }
 
+        // --- RECUPERO DATI E UI ---
+        function sincronizza() {
+            const sessione = JSON.parse(localStorage.getItem('appSession'));
+            if (!sessione) return;
+            document.getElementById('btn-sync').innerText = "⏳";
+            
+            chiamaGoogle({ action: "getData", token: sessione.token }).then(data => {
+                if (data.success) {
+                    DATABASE = data.data;
+                    APP_CONFIG = data.config || {}; // Salviamo la configurazione arrivata dal server
+                    
+                    renderMenu();
+                    if(FOGLIO_ATTIVO && DATABASE[FOGLIO_ATTIVO]) caricaDati(FOGLIO_ATTIVO);
+                    document.getElementById('status-message').innerHTML = "";
+                } else {
+                    localStorage.removeItem('appSession');
+                    window.location.reload();
+                }
+            }).finally(() => document.getElementById('btn-sync').innerText = "🔄 Sync");
+        }
+
+        function renderMenu() {
+            const container = document.getElementById('buttons-container');
+            container.innerHTML = "";
+            Object.keys(DATABASE).forEach(nome => {
+                const btn = document.createElement('button');
+                btn.innerText = nome;
+                btn.onclick = () => caricaDati(nome);
+                container.appendChild(btn);
+            });
+        }
+
+        function caricaDati(nomeFoglio) {
+            FOGLIO_ATTIVO = nomeFoglio;
+            document.getElementById('titolo-foglio').innerText = nomeFoglio;
+            
+            document.querySelectorAll('#sidebar button').forEach(b => {
+                b.classList.remove('active');
+                if(b.innerText === nomeFoglio) b.classList.add('active');
+            });
+
+            // Leggi config. Se non esiste, crea un default di sola lettura.
+            const config = APP_CONFIG[nomeFoglio] || { puoAggiungere: false, puoModificare: false, colonneVisibili: [] };
+            document.getElementById('btn-add-record').style.display = config.puoAggiungere ? "block" : "none";
+
+            const foglioDati = DATABASE[nomeFoglio];
+            const intestazioni = foglioDati.intestazioni;
+            const righe = foglioDati.righe;
+
+            if (intestazioni.length === 0) {
+                document.getElementById('tabella-container').innerHTML = "<p>Foglio completamente vuoto.</p>";
+                return;
+            }
+
+            let colonneDaMostrare = intestazioni;
+            if (config.colonneVisibili && config.colonneVisibili.length > 0) {
+                colonneDaMostrare = intestazioni.filter(h => config.colonneVisibili.includes(h));
+            }
+
+            let html = '<table><thead><tr>';
+            colonneDaMostrare.forEach(col => html += `<th>${col}</th>`);
+            if (config.puoModificare) html += `<th>Azioni</th>`;
+            html += '</tr></thead><tbody>';
+            
+            righe.forEach(riga => {
+                html += '<tr>';
+                colonneDaMostrare.forEach(col => html += `<td>${riga[col] || ""}</td>`);
+                
+                if (config.puoModificare) {
+                    const rigaJSON = encodeURIComponent(JSON.stringify(riga));
+                    html += `<td><button class="btn btn-edit" onclick="apriForm('${rigaJSON}')">✏️ Modifica</button></td>`;
+                }
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            
+            if(righe.length === 0) html = "<p>Nessuna riga presente.</p>";
+            document.getElementById('tabella-container').innerHTML = html;
+        }
+
+        // --- MODALI COMUNI ---
+        function chiudiModal(id) { document.getElementById(id).style.display = "none"; }
+
+        // --- GESTIONE IMPOSTAZIONI ---
+        function apriImpostazioni() {
+            if (!FOGLIO_ATTIVO) return alert("Seleziona prima un foglio a sinistra.");
+            
+            document.getElementById('settings-nome-foglio').innerText = FOGLIO_ATTIVO;
+            const config = APP_CONFIG[FOGLIO_ATTIVO] || { puoAggiungere: false, puoModificare: false, colonneVisibili: [] };
+            const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
+
+            document.getElementById('set-add').checked = config.puoAggiungere;
+            document.getElementById('set-edit').checked = config.puoModificare;
+
+            let colHtml = '<label><b>Colonne Visibili:</b> (Lascia tutto vuoto per mostrarle tutte)</label><br>';
+            intestazioni.forEach(col => {
+                const isChecked = config.colonneVisibili && config.colonneVisibili.includes(col);
+                colHtml += `<label style="display:block; margin-top:5px; font-weight:normal;">
+                    <input type="checkbox" class="chk-colonna" value="${col}" ${isChecked ? 'checked' : ''}> ${col}
+                </label>`;
+            });
+            document.getElementById('settings-colonne').innerHTML = colHtml;
+
+            document.getElementById('modal-settings').style.display = "flex";
+        }
+
+        function salvaImpostazioni() {
+            const btn = document.getElementById('btn-save-settings');
+            btn.innerText = "Salvataggio..."; btn.disabled = true;
+
+            const colonneSelezionate = Array.from(document.querySelectorAll('.chk-colonna:checked')).map(chk => chk.value);
+            
+            APP_CONFIG[FOGLIO_ATTIVO] = {
+                puoAggiungere: document.getElementById('set-add').checked,
+                puoModificare: document.getElementById('set-edit').checked,
+                colonneVisibili: colonneSelezionate
+            };
+
+            const sessione = JSON.parse(localStorage.getItem('appSession'));
+            chiamaGoogle({ action: "saveConfig", config: APP_CONFIG, token: sessione.token })
+                .then(res => {
+                    if(res.success) {
+                        chiudiModal('modal-settings');
+                        caricaDati(FOGLIO_ATTIVO); // Ricarica subito la vista con le nuove regole
+                    } else alert("Errore nel salvataggio.");
+                }).finally(() => { btn.innerText = "Salva Impostazioni"; btn.disabled = false; });
+        }
+
+        // --- GESTIONE DATI (FORM) ---
+        function apriForm(rigaJSONEncoded) {
+            const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
+            const container = document.getElementById('modal-form-fields');
+            container.innerHTML = "";
+            
+            let datiRiga = {};
+            if (rigaJSONEncoded) {
+                datiRiga = JSON.parse(decodeURIComponent(rigaJSONEncoded));
+                RIGA_IN_MODIFICA = datiRiga._rowIndex;
+                document.getElementById('modal-title').innerText = "Modifica Record";
+            } else {
+                RIGA_IN_MODIFICA = null;
+                document.getElementById('modal-title').innerText = "Nuovo Record";
+            }
+
+            intestazioni.forEach(col => {
+                let div = document.createElement('div');
+                div.className = "form-group";
+                let val = datiRiga[col] !== undefined ? datiRiga[col] : "";
+                div.innerHTML = `<label>${col}</label><input type="text" id="input-${col}" value="${val}">`;
+                container.appendChild(div);
+            });
+
+            document.getElementById('modal-form').style.display = "flex";
+        }
+
+        function salvaDati() {
+            const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
+            const sessione = JSON.parse(localStorage.getItem('appSession'));
+            const btn = document.getElementById('btn-save-modal');
+            
+            let nuoviDati = {};
+            intestazioni.forEach(col => nuoviDati[col] = document.getElementById(`input-${col}`).value);
+
+            const payload = { action: RIGA_IN_MODIFICA ? "editRow" : "addRow", sheet: FOGLIO_ATTIVO, data: nuoviDati, rowIndex: RIGA_IN_MODIFICA, token: sessione.token };
+
+            btn.innerText = "Salvataggio..."; btn.disabled = true;
+            chiamaGoogle(payload).then(res => {
+                if(res.success) {
+                    chiudiModal('modal-form');
+                    sincronizza();
+                } else alert("Errore: " + res.error);
+            }).finally(() => { btn.innerText = "Salva Dati"; btn.disabled = false; });
+        }
+    </script>
 </body>
 </html>
