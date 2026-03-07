@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
     <title>My Sheets App Pro</title>
+    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1abc9c">
-    
+
     <style>
         /* BASE & LAYOUT */
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #f4f7f6; height: 100vh; overflow: hidden; }
@@ -16,7 +16,8 @@
         #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #2c3e50; color: white; }
         .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; color: #333; width: 90%; max-width: 350px; }
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .login-box button { width: 100%; padding: 12px; background: #1abc9c; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .login-box button { width: 100%; padding: 12px; background: #1abc9c; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .login-box button:disabled { background: #95a5a6; cursor: not-allowed; }
 
         /* APP E SIDEBAR FISSA */
         #app-screen { display: none; height: 100vh; flex-direction: row; }
@@ -25,9 +26,14 @@
         #sidebar button:hover, #sidebar button.active { background: #1abc9c; }
         
         #main-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%; }
-        #header { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        #header { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
         #content { padding: 20px; overflow-y: auto; flex-grow: 1; }
 
+        /* TOOLBAR RICERCA E ORDINAMENTO */
+        .toolbar { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .toolbar input, .toolbar select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1; min-width: 150px; font-size: 14px; }
+        .toolbar .btn-sort { background: #34495e; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; white-space: nowrap; font-weight: bold; }
+        
         /* TABELLE */
         .table-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         table { border-collapse: collapse; width: 100%; min-width: 600px; }
@@ -35,7 +41,7 @@
         th { background-color: #1abc9c; color: white; }
         tr:hover { background-color: #f9f9f9; }
 
-        /* BOTTONI */
+        /* BOTTONI INTESTAZIONE */
         .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; }
         .btn-sync { background: #f39c12; }
         .btn-settings { background: #7f8c8d; margin-left: 5px; }
@@ -48,6 +54,11 @@
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
         .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        /* FIX CHECKBOX ALLINEAMENTO */
+        .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: normal; margin-top: 8px; cursor: pointer; font-size: 15px; }
+        .checkbox-label input { width: auto !important; margin: 0 !important; cursor: pointer; transform: scale(1.2); }
+
         .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
         .btn-save { background: #27ae60; }
         .btn-cancel { background: #e74c3c; }
@@ -92,6 +103,14 @@
             </div>
             <div id="content">
                 <div id="status-message">Seleziona un foglio per iniziare.</div>
+                
+                <div id="toolbar" class="toolbar" style="display: none;">
+                    <input type="text" id="search-input" placeholder="🔍 Cerca in questo foglio..." oninput="renderTabella()">
+                    <select id="sort-column" onchange="cambiaOrdinamento()">
+                        </select>
+                    <button id="btn-sort-dir" class="btn-sort" onclick="cambiaDirezioneOrdinamento()">⬇️ A-Z</button>
+                </div>
+
                 <div class="table-wrapper" id="tabella-container"></div>
             </div>
         </div>
@@ -113,15 +132,15 @@
             <h3>⚙️ Impostazioni Foglio</h3>
             <p>Configura i permessi per il foglio: <b id="settings-nome-foglio"></b></p>
             
-            <div class="form-group">
-                <label><input type="checkbox" id="set-add"> Permetti l'aggiunta di nuove righe</label>
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="set-edit"> Permetti la modifica delle righe esistenti</label>
-            </div>
+            <label class="checkbox-label">
+                <input type="checkbox" id="set-add"> Permetti aggiunta di nuove righe
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="set-edit"> Permetti modifica delle righe
+            </label>
             
             <hr style="border:0; border-top:1px solid #ccc; margin: 15px 0;">
-            <div id="settings-colonne" class="form-group">
+            <div id="settings-colonne">
                 </div>
 
             <div class="modal-buttons">
@@ -132,216 +151,369 @@
     </div>
 
     <script>
-        // --- REGISTRAZIONE PWA ---
-        if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-        .then(() => console.log("PWA Pronta per l'installazione"))
-        .catch(err => console.log("Errore PWA: ", err));
-        }
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxqJtptaXAZ_AloXrAOx4UX59OWAdEjzzN7FsWpMIn-0jLKZ4Q64f-idCefTttB-U2g/exec";
-        
-        let DATABASE = {};
-        let APP_CONFIG = {}; // Ora viene popolato dal server
-        let FOGLIO_ATTIVO = "";
-        let RIGA_IN_MODIFICA = null;
+    // --- CONFIGURAZIONE BASE ---
+    const WEB_APP_URL = "INCOLLA_QUI_IL_TUO_URL_EXEC";
+    
+    // --- CONFIGURAZIONE ORDINAMENTO DATE ---
+    // 1. Scrivi qui i nomi esatti dei 3 fogli che devono avere l'ordine automatico
+    const FOGLI_CON_DATE = ["NomeFoglio1", "NomeFoglio2", "NomeFoglio3"]; 
+    // 2. Scrivi qui l'esatta intestazione della colonna che contiene la data e ora
+    const NOME_COLONNA_DATA = "Data e Ora"; 
 
-        // --- GESTIONE ACCESSO ---
-        window.onload = function() {
-            const sessione = JSON.parse(localStorage.getItem('appSession'));
-            if (sessione && (new Date().getTime() - sessione.timestamp) / 3600000 < 24) {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-screen').style.display = 'flex';
-                sincronizza();
+    let DATABASE = {};
+    let APP_CONFIG = {};
+    let FOGLIO_ATTIVO = "";
+    
+    let RIGA_ORIGINALE_IN_MODIFICA = null;
+    let ORDINAMENTO = { colonna: null, direzione: 1 }; // 1=Ascendente, -1=Discendente
+
+    // --- REGISTRAZIONE PWA ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+    }
+
+    // --- GESTIONE ACCESSO ---
+    window.onload = function() {
+        const sessione = JSON.parse(localStorage.getItem('appSession'));
+        if (sessione && (new Date().getTime() - sessione.timestamp) / 3600000 < 24) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+            sincronizza();
+        }
+    };
+
+    function chiamaGoogle(dati) {
+        return fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(dati) }).then(res => res.json());
+    }
+
+    function faiLogin() {
+        const pass = document.getElementById('pass-input').value;
+        const btn = document.getElementById('btn-login');
+        
+        btn.innerHTML = "⏳ Accesso in corso..."; 
+        btn.disabled = true;
+
+        chiamaGoogle({ action: "login", pass: pass }).then(data => {
+            if (data.success) {
+                localStorage.setItem('appSession', JSON.stringify({ token: data.token, timestamp: new Date().getTime() }));
+                window.location.reload();
+            } else {
+                alert("Password errata");
+                btn.innerHTML = "Entra"; btn.disabled = false;
             }
+        }).catch(() => {
+            alert("Errore di connessione");
+            btn.innerHTML = "Entra"; btn.disabled = false;
+        });
+    }
+
+    // --- RECUPERO DATI E UI ---
+    function sincronizza() {
+        const sessione = JSON.parse(localStorage.getItem('appSession'));
+        if (!sessione) return;
+        
+        const btnSync = document.getElementById('btn-sync');
+        btnSync.innerText = "⏳ Sincronizzazione...";
+        
+        chiamaGoogle({ action: "getData", token: sessione.token }).then(data => {
+            if (data.success) {
+                DATABASE = data.data;
+                APP_CONFIG = data.config || {};
+                
+                renderMenu();
+                if(FOGLIO_ATTIVO && DATABASE[FOGLIO_ATTIVO]) caricaDati(FOGLIO_ATTIVO);
+                document.getElementById('status-message').style.display = "none";
+                
+                const ora = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                btnSync.innerText = `🔄 Sync (${ora})`;
+            } else {
+                localStorage.removeItem('appSession');
+                window.location.reload();
+            }
+        }).catch(() => btnSync.innerText = "🔄 Errore Sync");
+    }
+
+    function renderMenu() {
+        const container = document.getElementById('buttons-container');
+        container.innerHTML = "";
+        Object.keys(DATABASE).forEach(nome => {
+            const btn = document.createElement('button');
+            btn.innerText = nome;
+            btn.onclick = () => caricaDati(nome);
+            container.appendChild(btn);
+        });
+    }
+
+    // --- PREPARAZIONE FOGLIO ---
+    function caricaDati(nomeFoglio) {
+        FOGLIO_ATTIVO = nomeFoglio;
+        document.getElementById('titolo-foglio').innerText = nomeFoglio;
+        
+        document.querySelectorAll('#sidebar button').forEach(b => {
+            b.classList.remove('active');
+            if(b.innerText === nomeFoglio) b.classList.add('active');
+        });
+
+        const config = APP_CONFIG[nomeFoglio] || { puoAggiungere: false, puoModificare: false, colonneVisibili: [] };
+        document.getElementById('btn-add-record').style.display = config.puoAggiungere ? "block" : "none";
+
+        const intestazioni = DATABASE[nomeFoglio].intestazioni;
+        if (intestazioni.length === 0) {
+            document.getElementById('toolbar').style.display = "none";
+            document.getElementById('tabella-container').innerHTML = "<p>Foglio vuoto.</p>";
+            return;
+        }
+
+        let colonneDaMostrare = intestazioni;
+        if (config.colonneVisibili && config.colonneVisibili.length > 0) {
+            colonneDaMostrare = intestazioni.filter(h => config.colonneVisibili.includes(h));
+        }
+
+        document.getElementById('toolbar').style.display = "flex";
+        document.getElementById('search-input').value = ""; 
+        
+        const sortSelect = document.getElementById('sort-column');
+        sortSelect.innerHTML = `<option value="">-- Ordina per --</option>`;
+        colonneDaMostrare.forEach(col => {
+            sortSelect.innerHTML += `<option value="${col}">${col}</option>`;
+        });
+        
+        // --- LOGICA ORDINAMENTO AUTOMATICO DATE ---
+        if (FOGLI_CON_DATE.includes(nomeFoglio) && intestazioni.includes(NOME_COLONNA_DATA)) {
+            // Imposta l'ordinamento sulla colonna data, in ordine decrescente (più recenti prima)
+            ORDINAMENTO.colonna = NOME_COLONNA_DATA;
+            ORDINAMENTO.direzione = -1; 
+            document.getElementById('btn-sort-dir').innerText = "⬆️ Z-A"; // Equivalente a Più recenti prima
+            sortSelect.value = NOME_COLONNA_DATA;
+        } else {
+            // Nessun ordinamento automatico
+            ORDINAMENTO.colonna = null;
+            ORDINAMENTO.direzione = 1;
+            document.getElementById('btn-sort-dir').innerText = "⬇️ A-Z";
+            sortSelect.value = "";
+        }
+
+        renderTabella(); 
+    }
+
+    // --- FUNZIONE DI SUPPORTO PER LE DATE ITALIANE ---
+    function convertiDataItaliana(dataStr) {
+        if (!dataStr) return 0;
+        const mesi = {"gennaio":0, "febbraio":1, "marzo":2, "aprile":3, "maggio":4, "giugno":5, "luglio":6, "agosto":7, "settembre":8, "ottobre":9, "novembre":10, "dicembre":11};
+        const parts = dataStr.toLowerCase().split(' ');
+        
+        let meseIndex = -1, giorno = 1, timeStr = "00:00";
+        for (let i = 0; i < parts.length; i++) {
+            if (mesi[parts[i]] !== undefined) {
+                meseIndex = mesi[parts[i]];
+                giorno = parseInt(parts[i-1]) || 1; // Il giorno è la parola prima del mese
+            }
+            if (parts[i].includes(':')) timeStr = parts[i];
+        }
+        
+        if (meseIndex === -1) return 0; // Se non riconosce il mese, lo mette in fondo
+        
+        const tParts = timeStr.split(':');
+        const ore = parseInt(tParts[0]) || 0;
+        const min = parseInt(tParts[1]) || 0;
+        
+        // Assegna l'anno corrente (dato che manca nella stringa)
+        const anno = new Date().getFullYear();
+        return new Date(anno, meseIndex, giorno, ore, min).getTime();
+    }
+
+    // --- MOTORE DI RICERCA, ORDINAMENTO E TABELLA ---
+    function cambiaOrdinamento() {
+        ORDINAMENTO.colonna = document.getElementById('sort-column').value || null;
+        renderTabella();
+    }
+
+    function cambiaDirezioneOrdinamento() {
+        ORDINAMENTO.direzione *= -1;
+        document.getElementById('btn-sort-dir').innerText = ORDINAMENTO.direzione === 1 ? "⬇️ A-Z" : "⬆️ Z-A";
+        renderTabella();
+    }
+
+    function renderTabella() {
+        const config = APP_CONFIG[FOGLIO_ATTIVO] || { puoAggiungere: false, puoModificare: false, colonneVisibili: [] };
+        const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
+        let righe = [...DATABASE[FOGLIO_ATTIVO].righe]; 
+
+        let colonneDaMostrare = intestazioni;
+        if (config.colonneVisibili && config.colonneVisibili.length > 0) {
+            colonneDaMostrare = intestazioni.filter(h => config.colonneVisibili.includes(h));
+        }
+
+        // 1. Filtro Ricerca
+        const query = document.getElementById('search-input').value.toLowerCase();
+        if (query) {
+            righe = righe.filter(riga => {
+                return colonneDaMostrare.some(col => {
+                    const val = riga[col];
+                    return val !== null && val !== undefined && String(val).toLowerCase().includes(query);
+                });
+            });
+        }
+
+        // 2. Ordinamento
+        if (ORDINAMENTO.colonna) {
+            const col = ORDINAMENTO.colonna;
+            const dir = ORDINAMENTO.direzione;
+            
+            righe.sort((a, b) => {
+                let valA = a[col] !== undefined && a[col] !== null ? String(a[col]) : "";
+                let valB = b[col] !== undefined && b[col] !== null ? String(b[col]) : "";
+                
+                // INTERCETTAZIONE DATE (Colonna virtuale)
+                if (col === NOME_COLONNA_DATA) {
+                    let tempoA = convertiDataItaliana(valA);
+                    let tempoB = convertiDataItaliana(valB);
+                    if(tempoA !== 0 && tempoB !== 0) {
+                        return (tempoA - tempoB) * dir;
+                    }
+                }
+                
+                // Ordinamento Normale (Testo o Numeri)
+                let valALower = valA.toLowerCase();
+                let valBLower = valB.toLowerCase();
+                if(!isNaN(valALower) && !isNaN(valBLower) && valALower !== "" && valBLower !== "") {
+                    return (Number(valALower) - Number(valBLower)) * dir;
+                }
+                return valALower.localeCompare(valBLower) * dir;
+            });
+        }
+
+        // 3. Costruisci HTML
+        let html = '<table><thead><tr>';
+        colonneDaMostrare.forEach(col => html += `<th>${col}</th>`);
+        if (config.puoModificare) html += `<th>Azioni</th>`;
+        html += '</tr></thead><tbody>';
+        
+        righe.forEach(riga => {
+            html += '<tr>';
+            colonneDaMostrare.forEach(col => html += `<td>${riga[col] || ""}</td>`);
+            
+            if (config.puoModificare) {
+                const rigaJSON = encodeURIComponent(JSON.stringify(riga));
+                html += `<td><button class="btn btn-edit" onclick="apriForm('${rigaJSON}')">✏️ Modifica</button></td>`;
+            }
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        
+        if(righe.length === 0) html = "<p>Nessuna riga trovata.</p>";
+        document.getElementById('tabella-container').innerHTML = html;
+    }
+
+    // --- MODALI E IMPOSTAZIONI ---
+    function chiudiModal(id) { document.getElementById(id).style.display = "none"; }
+
+    function apriImpostazioni() {
+        if (!FOGLIO_ATTIVO) return alert("Seleziona un foglio.");
+        
+        document.getElementById('settings-nome-foglio').innerText = FOGLIO_ATTIVO;
+        const config = APP_CONFIG[FOGLIO_ATTIVO] || { puoAggiungere: false, puoModificare: false, colonneVisibili: [] };
+        const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
+
+        document.getElementById('set-add').checked = config.puoAggiungere;
+        document.getElementById('set-edit').checked = config.puoModificare;
+
+        let colHtml = '<label><b>Colonne Visibili:</b> (Lascia vuoto per tutte)</label>';
+        intestazioni.forEach(col => {
+            const isChecked = config.colonneVisibili && config.colonneVisibili.includes(col);
+            colHtml += `<label class="checkbox-label">
+                <input type="checkbox" class="chk-colonna" value="${col}" ${isChecked ? 'checked' : ''}> ${col}
+            </label>`;
+        });
+        document.getElementById('settings-colonne').innerHTML = colHtml;
+        document.getElementById('modal-settings').style.display = "flex";
+    }
+
+    function salvaImpostazioni() {
+        const btn = document.getElementById('btn-save-settings');
+        btn.innerText = "⏳ Salvataggio..."; btn.disabled = true;
+
+        const colonneSelezionate = Array.from(document.querySelectorAll('.chk-colonna:checked')).map(chk => chk.value);
+        
+        APP_CONFIG[FOGLIO_ATTIVO] = {
+            puoAggiungere: document.getElementById('set-add').checked,
+            puoModificare: document.getElementById('set-edit').checked,
+            colonneVisibili: colonneSelezionate
         };
 
-        function chiamaGoogle(dati) {
-            return fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(dati) }).then(res => res.json());
-        }
-
-        function faiLogin() {
-            const pass = document.getElementById('pass-input').value;
-            chiamaGoogle({ action: "login", pass: pass }).then(data => {
-                if (data.success) {
-                    localStorage.setItem('appSession', JSON.stringify({ token: data.token, timestamp: new Date().getTime() }));
-                    window.location.reload();
-                } else alert("Password errata");
-            });
-        }
-
-        // --- RECUPERO DATI E UI ---
-        function sincronizza() {
-            const sessione = JSON.parse(localStorage.getItem('appSession'));
-            if (!sessione) return;
-            document.getElementById('btn-sync').innerText = "⏳";
-            
-            chiamaGoogle({ action: "getData", token: sessione.token }).then(data => {
-                if (data.success) {
-                    DATABASE = data.data;
-                    APP_CONFIG = data.config || {}; // Salviamo la configurazione arrivata dal server
-                    
-                    renderMenu();
-                    if(FOGLIO_ATTIVO && DATABASE[FOGLIO_ATTIVO]) caricaDati(FOGLIO_ATTIVO);
-                    document.getElementById('status-message').innerHTML = "";
-                } else {
-                    localStorage.removeItem('appSession');
-                    window.location.reload();
-                }
-            }).finally(() => document.getElementById('btn-sync').innerText = "🔄 Sync");
-        }
-
-        function renderMenu() {
-            const container = document.getElementById('buttons-container');
-            container.innerHTML = "";
-            Object.keys(DATABASE).forEach(nome => {
-                const btn = document.createElement('button');
-                btn.innerText = nome;
-                btn.onclick = () => caricaDati(nome);
-                container.appendChild(btn);
-            });
-        }
-
-        function caricaDati(nomeFoglio) {
-            FOGLIO_ATTIVO = nomeFoglio;
-            document.getElementById('titolo-foglio').innerText = nomeFoglio;
-            
-            document.querySelectorAll('#sidebar button').forEach(b => {
-                b.classList.remove('active');
-                if(b.innerText === nomeFoglio) b.classList.add('active');
-            });
-
-            // Leggi config. Se non esiste, crea un default di sola lettura.
-            const config = APP_CONFIG[nomeFoglio] || { puoAggiungere: false, puoModificare: false, colonneVisibili: [] };
-            document.getElementById('btn-add-record').style.display = config.puoAggiungere ? "block" : "none";
-
-            const foglioDati = DATABASE[nomeFoglio];
-            const intestazioni = foglioDati.intestazioni;
-            const righe = foglioDati.righe;
-
-            if (intestazioni.length === 0) {
-                document.getElementById('tabella-container').innerHTML = "<p>Foglio completamente vuoto.</p>";
-                return;
-            }
-
-            let colonneDaMostrare = intestazioni;
-            if (config.colonneVisibili && config.colonneVisibili.length > 0) {
-                colonneDaMostrare = intestazioni.filter(h => config.colonneVisibili.includes(h));
-            }
-
-            let html = '<table><thead><tr>';
-            colonneDaMostrare.forEach(col => html += `<th>${col}</th>`);
-            if (config.puoModificare) html += `<th>Azioni</th>`;
-            html += '</tr></thead><tbody>';
-            
-            righe.forEach(riga => {
-                html += '<tr>';
-                colonneDaMostrare.forEach(col => html += `<td>${riga[col] || ""}</td>`);
-                
-                if (config.puoModificare) {
-                    const rigaJSON = encodeURIComponent(JSON.stringify(riga));
-                    html += `<td><button class="btn btn-edit" onclick="apriForm('${rigaJSON}')">✏️ Modifica</button></td>`;
-                }
-                html += '</tr>';
-            });
-            html += '</tbody></table>';
-            
-            if(righe.length === 0) html = "<p>Nessuna riga presente.</p>";
-            document.getElementById('tabella-container').innerHTML = html;
-        }
-
-        // --- MODALI COMUNI ---
-        function chiudiModal(id) { document.getElementById(id).style.display = "none"; }
-
-        // --- GESTIONE IMPOSTAZIONI ---
-        function apriImpostazioni() {
-            if (!FOGLIO_ATTIVO) return alert("Seleziona prima un foglio a sinistra.");
-            
-            document.getElementById('settings-nome-foglio').innerText = FOGLIO_ATTIVO;
-            const config = APP_CONFIG[FOGLIO_ATTIVO] || { puoAggiungere: false, puoModificare: false, colonneVisibili: [] };
-            const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
-
-            document.getElementById('set-add').checked = config.puoAggiungere;
-            document.getElementById('set-edit').checked = config.puoModificare;
-
-            let colHtml = '<label><b>Colonne Visibili:</b> (Lascia tutto vuoto per mostrarle tutte)</label><br>';
-            intestazioni.forEach(col => {
-                const isChecked = config.colonneVisibili && config.colonneVisibili.includes(col);
-                colHtml += `<label style="display:block; margin-top:5px; font-weight:normal;">
-                    <input type="checkbox" class="chk-colonna" value="${col}" ${isChecked ? 'checked' : ''}> ${col}
-                </label>`;
-            });
-            document.getElementById('settings-colonne').innerHTML = colHtml;
-
-            document.getElementById('modal-settings').style.display = "flex";
-        }
-
-        function salvaImpostazioni() {
-            const btn = document.getElementById('btn-save-settings');
-            btn.innerText = "Salvataggio..."; btn.disabled = true;
-
-            const colonneSelezionate = Array.from(document.querySelectorAll('.chk-colonna:checked')).map(chk => chk.value);
-            
-            APP_CONFIG[FOGLIO_ATTIVO] = {
-                puoAggiungere: document.getElementById('set-add').checked,
-                puoModificare: document.getElementById('set-edit').checked,
-                colonneVisibili: colonneSelezionate
-            };
-
-            const sessione = JSON.parse(localStorage.getItem('appSession'));
-            chiamaGoogle({ action: "saveConfig", config: APP_CONFIG, token: sessione.token })
-                .then(res => {
-                    if(res.success) {
-                        chiudiModal('modal-settings');
-                        caricaDati(FOGLIO_ATTIVO); // Ricarica subito la vista con le nuove regole
-                    } else alert("Errore nel salvataggio.");
-                }).finally(() => { btn.innerText = "Salva Impostazioni"; btn.disabled = false; });
-        }
-
-        // --- GESTIONE DATI (FORM) ---
-        function apriForm(rigaJSONEncoded) {
-            const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
-            const container = document.getElementById('modal-form-fields');
-            container.innerHTML = "";
-            
-            let datiRiga = {};
-            if (rigaJSONEncoded) {
-                datiRiga = JSON.parse(decodeURIComponent(rigaJSONEncoded));
-                RIGA_IN_MODIFICA = datiRiga._rowIndex;
-                document.getElementById('modal-title').innerText = "Modifica Record";
-            } else {
-                RIGA_IN_MODIFICA = null;
-                document.getElementById('modal-title').innerText = "Nuovo Record";
-            }
-
-            intestazioni.forEach(col => {
-                let div = document.createElement('div');
-                div.className = "form-group";
-                let val = datiRiga[col] !== undefined ? datiRiga[col] : "";
-                div.innerHTML = `<label>${col}</label><input type="text" id="input-${col}" value="${val}">`;
-                container.appendChild(div);
-            });
-
-            document.getElementById('modal-form').style.display = "flex";
-        }
-
-        function salvaDati() {
-            const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
-            const sessione = JSON.parse(localStorage.getItem('appSession'));
-            const btn = document.getElementById('btn-save-modal');
-            
-            let nuoviDati = {};
-            intestazioni.forEach(col => nuoviDati[col] = document.getElementById(`input-${col}`).value);
-
-            const payload = { action: RIGA_IN_MODIFICA ? "editRow" : "addRow", sheet: FOGLIO_ATTIVO, data: nuoviDati, rowIndex: RIGA_IN_MODIFICA, token: sessione.token };
-
-            btn.innerText = "Salvataggio..."; btn.disabled = true;
-            chiamaGoogle(payload).then(res => {
+        const sessione = JSON.parse(localStorage.getItem('appSession'));
+        chiamaGoogle({ action: "saveConfig", config: APP_CONFIG, token: sessione.token })
+            .then(res => {
                 if(res.success) {
-                    chiudiModal('modal-form');
-                    sincronizza();
-                } else alert("Errore: " + res.error);
-            }).finally(() => { btn.innerText = "Salva Dati"; btn.disabled = false; });
+                    chiudiModal('modal-settings');
+                    caricaDati(FOGLIO_ATTIVO); 
+                } else alert("Errore nel salvataggio.");
+            }).finally(() => { btn.innerText = "Salva Impostazioni"; btn.disabled = false; });
+    }
+
+    // --- GESTIONE FORM DATI ---
+    function apriForm(rigaJSONEncoded) {
+        const config = APP_CONFIG[FOGLIO_ATTIVO] || {};
+        const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
+        
+        let colonneDaMostrare = intestazioni;
+        if (config.colonneVisibili && config.colonneVisibili.length > 0) {
+            colonneDaMostrare = intestazioni.filter(h => config.colonneVisibili.includes(h));
         }
-    </script>
+
+        const container = document.getElementById('modal-form-fields');
+        container.innerHTML = "";
+        
+        if (rigaJSONEncoded) {
+            RIGA_ORIGINALE_IN_MODIFICA = JSON.parse(decodeURIComponent(rigaJSONEncoded));
+            document.getElementById('modal-title').innerText = "Modifica Record";
+        } else {
+            RIGA_ORIGINALE_IN_MODIFICA = null;
+            document.getElementById('modal-title').innerText = "Nuovo Record";
+        }
+
+        colonneDaMostrare.forEach(col => {
+            let div = document.createElement('div');
+            div.className = "form-group";
+            let val = RIGA_ORIGINALE_IN_MODIFICA && RIGA_ORIGINALE_IN_MODIFICA[col] !== undefined ? RIGA_ORIGINALE_IN_MODIFICA[col] : "";
+            div.innerHTML = `<label>${col}</label><input type="text" id="input-${col}" value="${val}">`;
+            container.appendChild(div);
+        });
+
+        document.getElementById('modal-form').style.display = "flex";
+    }
+
+    function salvaDati() {
+        const intestazioni = DATABASE[FOGLIO_ATTIVO].intestazioni;
+        const config = APP_CONFIG[FOGLIO_ATTIVO] || {};
+        let colonneDaMostrare = intestazioni;
+        if (config.colonneVisibili && config.colonneVisibili.length > 0) {
+            colonneDaMostrare = intestazioni.filter(h => config.colonneVisibili.includes(h));
+        }
+
+        const sessione = JSON.parse(localStorage.getItem('appSession'));
+        const btn = document.getElementById('btn-save-modal');
+        
+        let nuoviDati = {};
+        intestazioni.forEach(col => {
+            if (colonneDaMostrare.includes(col)) {
+                nuoviDati[col] = document.getElementById(`input-${col}`).value; 
+            } else {
+                nuoviDati[col] = RIGA_ORIGINALE_IN_MODIFICA && RIGA_ORIGINALE_IN_MODIFICA[col] !== undefined ? RIGA_ORIGINALE_IN_MODIFICA[col] : "";
+            }
+        });
+
+        const rigaIndex = RIGA_ORIGINALE_IN_MODIFICA ? RIGA_ORIGINALE_IN_MODIFICA._rowIndex : null;
+        const payload = { action: rigaIndex ? "editRow" : "addRow", sheet: FOGLIO_ATTIVO, data: nuoviDati, rowIndex: rigaIndex, token: sessione.token };
+
+        btn.innerText = "⏳ Salvataggio..."; btn.disabled = true;
+        chiamaGoogle(payload).then(res => {
+            if(res.success) {
+                chiudiModal('modal-form');
+                sincronizza();
+            } else alert("Errore: " + res.error);
+        }).finally(() => { btn.innerText = "Salva Dati"; btn.disabled = false; });
+    }
+</script>
 </body>
 </html>
