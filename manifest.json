@@ -1,10 +1,10 @@
 {
-  "name": "My Sheets App Pro",
-  "short_name": "SheetsApp",
+  "name": "PALAMINI AUTO",
+  "short_name": "PALAMINI AUTO",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f7f6",
-  "theme_color": "#1abc9c",
+  "theme_color": "#4f8bc4",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/732/732220.png",
